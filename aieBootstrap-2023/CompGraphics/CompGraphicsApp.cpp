@@ -3,6 +3,7 @@
 #include "Input.h"
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
+#include <imgui.h>
 
 using glm::vec3;
 using glm::vec4;
@@ -29,6 +30,9 @@ bool CompGraphicsApp::startup() {
 	m_viewMatrix = glm::lookAt(vec3(10), vec3(0), vec3(0, 1, 0));
 	m_projectionMatrix = glm::perspective(glm::pi<float>() * 0.25f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
+	m_light.color = { 1, 1, 0 };
+	m_ambientLight = { .5f, .5f, .5f };
+
 	return LaunchShaders();
 }
 
@@ -42,8 +46,6 @@ void CompGraphicsApp::update(float deltaTime) {
 
 	// wipe the gizmos clean for this frame
 	Gizmos::clear();
-
-
 
 	// draw a simple grid with gizmos
 	vec4 white(1);
@@ -68,8 +70,19 @@ void CompGraphicsApp::update(float deltaTime) {
 	// quit if we press escape
 	aie::Input* input = aie::Input::getInstance();
 
+	// Grab the time since the application has started 
+	float time = getTime();
+
+	// Rotate the light to emulate a 'day/night' cycle
+	m_light.direction = 
+		glm::normalize(glm::vec3(glm::cos(time * 2), glm::sin(time * 2), 0));
+	
+
+
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
 		quit();
+
+	ImGUIRefresher();
 }
 
 void CompGraphicsApp::draw() {
@@ -83,10 +96,14 @@ void CompGraphicsApp::draw() {
 
 	// Draw the quad setup in QuadLoader()
 	auto pv = m_projectionMatrix * m_viewMatrix;
-	QuadDraw(pv * m_quadTransform);
+	//QuadDraw(pv * m_quadTransform);
+
+	CubeDraw(pv * m_cubeTransform);
 
 	// Draw the bunny setup in BunnyLoader()
-	BunnyDraw(pv * m_bunnyTransform);
+	//BunnyDraw(pv * m_bunnyTransform);
+
+	//PhongDraw(pv * m_bunnyTransform, m_bunnyTransform);
 
 	Gizmos::draw(m_projectionMatrix * m_viewMatrix);
 }
@@ -97,7 +114,9 @@ bool CompGraphicsApp::LaunchShaders()
 	if (!QuadLoader())
 		return false;
 	// used for loading bunny quad
-	if (!BunnyLoader())
+	//if (!BunnyLoader())
+	//	return false;
+	if (!CubeLoader())
 		return false;
 
 #pragma region BunnyRegion
@@ -106,6 +125,16 @@ bool CompGraphicsApp::LaunchShaders()
 #pragma endregion
 
 	return true;
+}
+
+void CompGraphicsApp::ImGUIRefresher()
+{
+	ImGui::Begin("Light Settings");
+	ImGui::DragFloat3("Global Light Color", 
+		&m_light.color[0], 0.1, 0, 1);
+	ImGui::DragFloat3("Global Light Direction",
+		&m_light.direction[0], 0.1, -1, 1);
+	ImGui::End();
 }
 
 bool CompGraphicsApp::QuadLoader()
@@ -130,7 +159,6 @@ bool CompGraphicsApp::QuadLoader()
 	vertices[3].position = { .5f, 0, -.5f, 1 };
 
 	unsigned int indices[6] = { 0 ,1 ,2 ,2 ,1 ,3 };
-
 
 
 	m_quadMesh.Intialise(4, vertices, 6, indices);
@@ -158,15 +186,71 @@ void CompGraphicsApp::QuadDraw(glm::mat4 pvm)
 	m_quadMesh.Draw();
 }
 
+bool CompGraphicsApp::CubeLoader()
+{
+	m_simpleShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/simple.vert");
+	m_simpleShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/simple.frag");
+
+	if (m_simpleShader.link() == false)
+	{
+		printf("Simple Shader has an Error: %s\n",
+			m_simpleShader.getLastError());
+		return false;
+	}
+
+	// Defined as 4 vertices for the 2 triangles
+	Mesh::Vertex vertices[8];
+	// Bottom Quad
+	vertices[0].position = { -.5f, 0,  .5f, 1 }; // Top Left
+	vertices[1].position = { .5f, 0,  .5f, 1 }; // Top Right
+	vertices[2].position = { -.5f, 0, -.5f, 1 }; // Bottom Left
+	vertices[3].position = { .5f, 0, -.5f, 1 }; // Bottom Right
+
+	// Top Quad
+	vertices[4].position = { -.5f, 1,  .5f, 1 }; // Top Left
+	vertices[5].position = { .5f, 1,  .5f, 1 }; // Top Right
+	vertices[6].position = { -.5f, 1, -.5f, 1 }; // Bottom Left
+	vertices[7].position = { .5f, 1, -.5f, 1 }; // Bottom Right
+
+	unsigned int indices[36] = { 0 ,1 ,2 ,2 ,1 ,3 };
+
+
+	m_cubeMesh.Intialise(8, vertices, 36, indices);
+
+	// This is a 10 'unit' wide quad
+	m_cubeTransform = {
+		10, 0, 0, 0,
+		0, 10, 0, 0,
+		0, 0, 10, 0,
+		0, 0, 0, 1
+	};
+	return true;
+}
+
+void CompGraphicsApp::CubeDraw(glm::mat4 pvm)
+{
+	// Bind the shader
+	m_simpleShader.bind();
+
+	// Bind the transform
+
+	m_simpleShader.bindUniform("ProjectionViewModel", pvm);
+
+	// Draw the quad using Mesh's draw
+	m_cubeMesh.Draw();
+}
+
 bool CompGraphicsApp::BunnyLoader()
 {
-	m_colorShader.loadShader(aie::eShaderStage::VERTEX,
-		"./shaders/color.vert");
-	m_colorShader.loadShader(aie::eShaderStage::FRAGMENT,
-		"./shaders/color.frag");
-	if (m_colorShader.link() == false)
+	m_phongShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/phong.vert");
+	m_phongShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/phong.frag");
+	if (m_phongShader.link() == false)
 	{
-		printf("Color shader Error: %s\n", m_colorShader.getLastError());
+		printf("Color shader Error: %s\n", m_phongShader.getLastError());
 		return false;
 	}
 
@@ -196,6 +280,28 @@ void CompGraphicsApp::BunnyDraw(glm::mat4 pvm)
 
 	// Bind the color 
 	m_colorShader.bindUniform("BaseColor", glm::vec4(1));
+
+	m_bunnyMesh.draw();
+}
+
+void CompGraphicsApp::PhongDraw(glm::mat4 pvm, glm::mat4 transform)
+{
+	// Bind the phong shader
+	m_phongShader.bind();
+
+	m_phongShader.bindUniform("CameraPosition",
+		glm::vec3(glm::inverse(m_viewMatrix)[3]));
+
+	// Bind the directional light we defined
+	m_phongShader.bindUniform("LightDirection", m_light.direction);
+	m_phongShader.bindUniform("LightColor", m_light.color);
+	m_phongShader.bindUniform("AmbientColor", m_ambientLight);
+
+	// bind the pvm using the one provided
+	m_phongShader.bindUniform("ProjectionViewModel", pvm);
+
+	// bind the transform using the one provided
+	m_phongShader.bindUniform("ModelMatrix", transform);
 
 	m_bunnyMesh.draw();
 }

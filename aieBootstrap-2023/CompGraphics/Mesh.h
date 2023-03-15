@@ -22,6 +22,9 @@ public:
 	// Will be used to make a simple quad
 	void InitialiseQuad();
 
+	// will be used for cubes
+	void IntialiseCubeQuad();
+
 	// Will be used for Post Processing
 	void InitialiseFullscreenQuad(); 
 
