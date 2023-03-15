@@ -26,7 +26,7 @@ public:
 	void InitialiseFullscreenQuad(); 
 
 	// Will be used for implementing a primitive
-	void Intialise();
+	void Intialise(unsigned int vertexCount, const Vertex* vertices, unsigned int indexCount = 0, unsigned int* indices = nullptr);
 
 	virtual void Draw();
 
