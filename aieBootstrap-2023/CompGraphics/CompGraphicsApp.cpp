@@ -27,8 +27,11 @@ bool CompGraphicsApp::startup() {
 
 
 	// create simple camera transforms
-	m_viewMatrix = glm::lookAt(vec3(10), vec3(0), vec3(0, 1, 0));
-	m_projectionMatrix = glm::perspective(glm::pi<float>() * 0.25f, 16.0f / 9.0f, 0.1f, 1000.0f);
+	m_viewMatrix = m_camera.GetViewMatrix();
+		//glm::lookAt(vec3(10), vec3(0), vec3(0, 1, 0));
+	m_projectionMatrix = m_camera.GetProjectionMatrix(getWindowWidth(),
+		getWindowHeight());
+		//glm::perspective(glm::pi<float>() * 0.25f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
 	m_light.color = { 1, 1, 0 };
 	m_ambientLight = { .5f, .5f, .5f };
@@ -66,6 +69,8 @@ void CompGraphicsApp::update(float deltaTime) {
 	//Planetary();
 	// -----------------------
 
+	m_cubeTransform = 
+		glm::rotate(m_cubeTransform, glm::radians(0.5f), glm::vec3(0, 1, 0));
 
 	// quit if we press escape
 	aie::Input* input = aie::Input::getInstance();
@@ -77,7 +82,7 @@ void CompGraphicsApp::update(float deltaTime) {
 	m_light.direction = 
 		glm::normalize(glm::vec3(glm::cos(time * 2), glm::sin(time * 2), 0));
 	
-
+	m_camera.Update(deltaTime);
 
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
 		quit();
@@ -90,15 +95,22 @@ void CompGraphicsApp::draw() {
 	// wipe the screen to the background colour
 	clearScreen();
 
+	// create simple camera transforms
+	m_viewMatrix = m_camera.GetViewMatrix();
+	//glm::lookAt(vec3(10), vec3(0), vec3(0, 1, 0));
+	m_projectionMatrix = m_camera.GetProjectionMatrix(getWindowWidth(),
+		getWindowHeight());
+
 	// update perspective based on screen size
-	m_projectionMatrix = glm::perspective(glm::pi<float>() * 0.25f, 
-		getWindowWidth() / (float)getWindowHeight(), 0.1f, 1000.0f);
+	auto pv = m_projectionMatrix * m_viewMatrix;
 
 	// Draw the quad setup in QuadLoader()
-	auto pv = m_projectionMatrix * m_viewMatrix;
 	//QuadDraw(pv * m_quadTransform);
 
 	CubeDraw(pv * m_cubeTransform);
+
+	CylinderDraw(pv * m_cylinderTransform);
+
 
 	// Draw the bunny setup in BunnyLoader()
 	//BunnyDraw(pv * m_bunnyTransform);
@@ -168,7 +180,7 @@ bool CompGraphicsApp::QuadLoader()
 		10, 0, 0, 0,
 		0, 10, 0, 0,
 		0, 0, 10, 0,
-		0, 0, 0, .5
+		0, 0, 0, 1
 	};
 	return true;
 }
@@ -214,22 +226,94 @@ bool CompGraphicsApp::CubeLoader()
 	vertices[6].position = { -.5f, 1, -.5f, 1 }; // Bottom Left
 	vertices[7].position = { .5f, 1, -.5f, 1 }; // Bottom Right
 
-	unsigned int indices[36] = { 0 ,1 ,2 ,2 ,1 ,3 };
+	unsigned int indices[36] = 
+	{
+		3, 1, 0, 0, 2, 3, // Bottom Face
+		2, 7, 3, 6, 7, 2, 
+		4, 6, 2, 2, 0, 4,
+		7, 6, 4, 4, 5, 7,
+		7, 5, 1, 1, 3, 7,
+		5, 4, 0, 0, 1, 5
+	};
 
 
 	m_cubeMesh.Intialise(8, vertices, 36, indices);
 
 	// This is a 10 'unit' wide quad
 	m_cubeTransform = {
-		10, 0, 0, 0,
-		0, 10, 0, 0,
-		0, 0, 10, 0,
-		0, 0, 0, 1
+		5, 0, 0, 0,
+		0, 5, 0, 0,
+		0, 0, 5, 0,
+		0, 0, 0,  1
 	};
 	return true;
 }
 
 void CompGraphicsApp::CubeDraw(glm::mat4 pvm)
+{
+	// Bind the shader
+	m_simpleShader.bind();
+
+	// Bind the transform
+
+	m_simpleShader.bindUniform("ProjectionViewModel", pvm);
+
+	// Draw the quad using Mesh's draw
+	m_cubeMesh.Draw();
+}
+
+bool CompGraphicsApp::Cylinder()
+{
+	m_simpleShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/simple.vert");
+	m_simpleShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/simple.frag");
+
+	if (m_simpleShader.link() == false)
+	{
+		printf("Simple Shader has an Error: %s\n",
+			m_simpleShader.getLastError());
+		return false;
+	}
+
+	// Defined as 4 vertices for the 2 triangles
+	Mesh::Vertex vertices[8];
+	// Bottom Quad
+	vertices[0].position = { -.5f, 0,  .5f, 1 }; // Top Left
+	vertices[1].position = { .5f, 0,  .5f, 1 }; // Top Right
+	vertices[2].position = { -.5f, 0, -.5f, 1 }; // Bottom Left
+	vertices[3].position = { .5f, 0, -.5f, 1 }; // Bottom Right
+
+	// Top Quad
+	vertices[4].position = { -.5f, 1,  .5f, 1 }; // Top Left
+	vertices[5].position = { .5f, 1,  .5f, 1 }; // Top Right
+	vertices[6].position = { -.5f, 1, -.5f, 1 }; // Bottom Left
+	vertices[7].position = { .5f, 1, -.5f, 1 }; // Bottom Right
+
+	unsigned int indices[36] =
+	{
+		3, 1, 0, 0, 2, 3, // Bottom Face
+		2, 7, 3, 6, 7, 2,
+		4, 6, 2, 2, 0, 4,
+		7, 6, 4, 4, 5, 7,
+		7, 5, 1, 1, 3, 7,
+		5, 4, 0, 0, 1, 5
+	};
+
+
+	m_cubeMesh.Intialise(8, vertices, 36, indices);
+
+	// This is a 10 'unit' wide quad
+	m_cubeTransform = {
+		5, 0, 0, 0,
+		0, 5, 0, 0,
+		0, 0, 5, 0,
+		0, 0, 0,  1
+	};
+	return true;
+}
+
+void CompGraphicsApp::CylinderDraw(glm::mat4 pvm)
 {
 	// Bind the shader
 	m_simpleShader.bind();

@@ -5,6 +5,7 @@
 #include "Shader.h"
 #include "Mesh.h"
 #include "OBJMesh.h"
+#include "SimpleCamera.h"
 
 
 class CompGraphicsApp : public aie::Application {
@@ -32,6 +33,9 @@ protected:
 
 	bool CubeLoader();
 	void CubeDraw(glm::mat4 pvm);
+	
+	bool Cylinder();
+	void CylinderDraw(glm::mat4 pvm);
 
 	bool BunnyLoader();
 	void BunnyDraw(glm::mat4 pvm);
@@ -52,8 +56,13 @@ protected:
 	Mesh                m_cubeMesh;
 	glm::mat4           m_cubeTransform;
 
+	Mesh                m_cylinderMesh;
+	glm::mat4           m_cylinderTransform;
+
 	aie::OBJMesh        m_bunnyMesh;
 	glm::mat4           m_bunnyTransform;
+
+	SimpleCamera        m_camera;
 
 	struct Light {
 		glm::vec3 direction;
