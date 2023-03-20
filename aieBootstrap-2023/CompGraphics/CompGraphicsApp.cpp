@@ -25,6 +25,9 @@ bool CompGraphicsApp::startup() {
 	// initialise gizmo primitive counts
 	Gizmos::create(10000, 10000, 10000, 10000);
 
+	m_stationaryCamera1.SetPosition(glm::vec3(-10, 2, 0));
+	m_stationaryCamera2.SetPosition(glm::vec3(-5, 5, 0));
+	m_stationaryCamera3.SetPosition(glm::vec3(-10, 1, 0));
 
 	// create simple camera transforms
 	m_viewMatrix = m_camera.GetViewMatrix();
@@ -35,6 +38,10 @@ bool CompGraphicsApp::startup() {
 
 	m_light.color = { 1, 1, 0 };
 	m_ambientLight = { .5f, .5f, .5f };
+
+	m_cameraX = -10;
+	m_cameraY = 2;
+	m_cameraZ = 0;
 
 	return LaunchShaders();
 }
@@ -82,12 +89,27 @@ void CompGraphicsApp::update(float deltaTime) {
 	m_light.direction = 
 		glm::normalize(glm::vec3(glm::cos(time * 2), glm::sin(time * 2), 0));
 	
-	m_camera.Update(deltaTime);
+	//if(!m_isCameraStatic)
+	//	m_camera.Update(deltaTime);
 
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
 		quit();
 
+	if (m_stationaryCamera1.m_isActive)
+	{
+		m_stationaryCamera1.Update(deltaTime);
+	}
+	else if (m_stationaryCamera2.m_isActive)
+	{
+		m_stationaryCamera2.Update(deltaTime);
+	}
+	else if (m_stationaryCamera3.m_isActive)
+	{
+		m_stationaryCamera3.Update(deltaTime);
+	}
+
 	ImGUIRefresher();
+	ImGUIShapeSelection();
 }
 
 void CompGraphicsApp::draw() {
@@ -106,29 +128,36 @@ void CompGraphicsApp::draw() {
 
 	// Draw the quad setup in QuadLoader()
 	//QuadDraw(pv * m_quadTransform);
-
-	CubeDraw(pv * m_cubeTransform);
-
-	CylinderDraw(pv * m_cylinderTransform);
-
-
+	// 
 	// Draw the bunny setup in BunnyLoader()
 	//BunnyDraw(pv * m_bunnyTransform);
 
 	//PhongDraw(pv * m_bunnyTransform, m_bunnyTransform);
 
+	QuadTextureDraw(pv * m_quadTransform);
+
 	Gizmos::draw(m_projectionMatrix * m_viewMatrix);
+
+	if (!cubeChecked)
+		return;
+	else
+		CubeDraw(pv * m_cubeTransform);
+
+	CylinderDraw(pv * m_cylinderTransform);
 }
 
 bool CompGraphicsApp::LaunchShaders()
 {
 	// used for loading in a simple quad
-	if (!QuadLoader())
-		return false;
+	//if (!QuadLoader())
+	//	return false;
 	// used for loading bunny quad
 	//if (!BunnyLoader())
 	//	return false;
 	if (!CubeLoader())
+		return false;
+
+	if (!QuadTextureLoader())
 		return false;
 
 #pragma region BunnyRegion
@@ -141,12 +170,67 @@ bool CompGraphicsApp::LaunchShaders()
 
 void CompGraphicsApp::ImGUIRefresher()
 {
+	// Lighting Settings
 	ImGui::Begin("Light Settings");
 	ImGui::DragFloat3("Global Light Color", 
 		&m_light.color[0], 0.1, 0, 1);
 	ImGui::DragFloat3("Global Light Direction",
 		&m_light.direction[0], 0.1, -1, 1);
+
+	// Camera Settings
+	if (ImGui::CollapsingHeader("Camera Settings"))
+	{
+		ImGui::Checkbox("Simple Static Camera", &m_isCameraStatic);
+		ImGui::InputFloat3("Simple Camera Position", &m_cameraX, m_cameraY, m_cameraZ);
+
+	}
+	//ImGui::InputFloat3("Camera Position", &m_camera.GetPosition()[0]);
+	if (ImGui::CollapsingHeader("Stationary Cameras"))
+	{
+		ImGui::Checkbox("Stationary Camera 1", &m_stationaryCamera1.m_isActive);
+		ImGui::Checkbox("Stationary Camera 2", &m_stationaryCamera2.m_isActive);
+		ImGui::Checkbox("Stationary Camera 3", &m_stationaryCamera3.m_isActive);
+
+	}
+
+	
+	if (m_stationaryCamera1.m_isActive)
+	{
+		SetStationaryCameraMatrix(m_stationaryCamera1);
+	}
+	else if (m_stationaryCamera2.m_isActive)
+	{
+		SetStationaryCameraMatrix(m_stationaryCamera2);
+	}
+	else if (m_stationaryCamera3.m_isActive)
+	{
+		SetStationaryCameraMatrix(m_stationaryCamera3);
+	}
+
+	glm::vec3 cameraPos = glm::vec3(m_cameraX, m_cameraY, m_cameraZ);
+	if (m_isCameraStatic)
+		m_camera.SetPosition(cameraPos);
+	
+
 	ImGui::End();
+}
+
+void CompGraphicsApp::ImGUIShapeSelection()
+{
+	ImGui::Begin("Shape Settings");
+	ImGui::Checkbox("Cube", &cubeChecked);
+	ImGui::DragFloat3("Cube Color",
+		&m_light.color[0], 0.1, 0, 1);
+	ImGui::End();
+}
+
+
+
+void CompGraphicsApp::SetStationaryCameraMatrix(StationaryCamera cam)
+{
+	m_viewMatrix = cam.GetViewMatrix();
+	m_projectionMatrix = cam.GetProjectionMatrix(getWindowWidth(),
+		getWindowHeight());
 }
 
 bool CompGraphicsApp::QuadLoader()
@@ -366,6 +450,56 @@ void CompGraphicsApp::BunnyDraw(glm::mat4 pvm)
 	m_colorShader.bindUniform("BaseColor", glm::vec4(1));
 
 	m_bunnyMesh.draw();
+}
+
+void CompGraphicsApp::QuadTextureDraw(glm::mat4 pvm)
+{
+	// Bind the shader
+	m_texturedShader.bind();
+
+	// Bind the transform
+
+	m_texturedShader.bindUniform("ProjectionViewModel", pvm);
+
+	// Bind the texture
+	m_texturedShader.bindUniform("diffuseTexture", 0);
+
+	// Bind the texture to a specific location
+	m_gridTexture.bind(0);
+
+	// Draw the quad using Mesh's draw
+	m_quadMesh.Draw();
+}
+
+bool CompGraphicsApp::QuadTextureLoader()
+{
+	m_texturedShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/textured.vert");
+	m_texturedShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/textured.frag");
+
+	if (m_texturedShader.link() == false)
+	{
+		printf("textured has an Error: %s\n",
+			m_texturedShader.getLastError());
+		return false;
+	}
+
+	if (m_gridTexture.load("./textures/numbered_grid.tga") == false)
+	{
+		printf("Failed to load the grid texture correctly!\n");
+	}
+
+	m_quadMesh.InitialiseQuad();
+
+	// This is a 10 'unit' wide quad
+	m_quadTransform = {
+		10, 0, 0, 0,
+		0, 10, 0, 0,
+		0, 0, 10, 0,
+		0, 0, 0, 1
+	};
+	return true;
 }
 
 void CompGraphicsApp::PhongDraw(glm::mat4 pvm, glm::mat4 transform)

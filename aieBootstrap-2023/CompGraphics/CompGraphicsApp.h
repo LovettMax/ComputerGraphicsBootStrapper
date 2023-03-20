@@ -6,6 +6,8 @@
 #include "Mesh.h"
 #include "OBJMesh.h"
 #include "SimpleCamera.h"
+#include "BaseCamera.h"
+#include "StationaryCamera.h"
 
 
 class CompGraphicsApp : public aie::Application {
@@ -27,6 +29,11 @@ protected:
 
 	bool LaunchShaders();
 	void ImGUIRefresher();
+	void ImGUIShapeSelection();
+
+	bool cubeChecked = false;
+
+	void SetStationaryCameraMatrix(StationaryCamera cam);
 
 	bool QuadLoader();
 	void QuadDraw(glm::mat4 pvm);
@@ -40,15 +47,21 @@ protected:
 	bool BunnyLoader();
 	void BunnyDraw(glm::mat4 pvm);
 
+	void QuadTextureDraw(glm::mat4 pvm);
+	bool QuadTextureLoader();
+
 	void PhongDraw(glm::mat4 pvm, glm::mat4 transform);
 
 	// camera transforms
 	glm::mat4	m_viewMatrix;
 	glm::mat4	m_projectionMatrix;
 
+	aie::Texture m_gridTexture;
+
 	aie::ShaderProgram  m_simpleShader;
 	aie::ShaderProgram  m_colorShader;
 	aie::ShaderProgram  m_phongShader;
+	aie::ShaderProgram  m_texturedShader;
 
 	Mesh                m_quadMesh;
 	glm::mat4           m_quadTransform;
@@ -62,7 +75,17 @@ protected:
 	aie::OBJMesh        m_bunnyMesh;
 	glm::mat4           m_bunnyTransform;
 
+	// Cameras
 	SimpleCamera        m_camera;
+	StationaryCamera    m_stationaryCamera1;
+	StationaryCamera    m_stationaryCamera2;
+	StationaryCamera    m_stationaryCamera3;
+
+	bool m_isCameraStatic = false;
+
+	float m_cameraX;
+	float m_cameraY;
+	float m_cameraZ;
 
 	struct Light {
 		glm::vec3 direction;

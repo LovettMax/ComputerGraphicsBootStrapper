@@ -16,6 +16,8 @@ public:
 	glm::mat4 GetTransform(glm::vec3 position, 
 		glm::vec3 eularAngles, glm::vec3 scale);
 
+	glm::vec3 SetPosition(glm::vec3 pos);
+
 private:
 	float m_theta;
 	float m_phi;

@@ -94,3 +94,8 @@ glm::mat4 SimpleCamera::GetTransform(glm::vec3 position, glm::vec3 eularAngles, 
 {
     return glm::mat4();
 }
+
+glm::vec3 SimpleCamera::SetPosition(glm::vec3 pos)
+{
+    return m_position = pos;
+}
