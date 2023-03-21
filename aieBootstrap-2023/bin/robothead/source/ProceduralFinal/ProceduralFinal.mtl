@@ -1,0 +1,17 @@
+# Blender MTL File: 'ProceduralFinal_.blend'
+# Material Count: 1
+
+newmtl Material.001
+Ns 1.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Bump Texturs\\Procedural\\Normales Procedurales.png
+map_Kd Color_procedural.png
+map_Ke Emisión.png
+map_Ns Asspereza_Procedural.png
+refl Texturs\\Procedural\\Metalidad Procedural.png

@@ -44,7 +44,9 @@ bool CompGraphicsApp::startup() {
 		getWindowHeight());
 		//glm::perspective(glm::pi<float>() * 0.25f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
-	m_light.color = { 1, 1, 0 };
+	Light light;
+
+	light.color = { 1, 1, 1 };
 	m_ambientLight = { .5f, .5f, .5f };
 
 	m_cameraX = -10;
@@ -57,6 +59,7 @@ bool CompGraphicsApp::startup() {
 void CompGraphicsApp::shutdown() {
 
 	Gizmos::destroy();
+	delete m_scene;
 }
 
 void CompGraphicsApp::update(float deltaTime) {
@@ -142,6 +145,8 @@ void CompGraphicsApp::draw() {
 	// update perspective based on screen size
 	auto pv = m_projectionMatrix * m_viewMatrix;
 
+	m_scene->Draw();
+
 	// Draw the quad setup in QuadLoader()
 	//QuadDraw(pv * m_quadTransform);
 	// 
@@ -150,7 +155,11 @@ void CompGraphicsApp::draw() {
 
 	//PhongDraw(pv * m_spearTransform, m_spearTransform);
 
-	ObjDraw(pv, m_spearTransform, &m_spearMesh);
+	//ObjDraw(pv, m_spearTransform, &m_spearMesh);
+
+	//ObjDraw(pv, m_headTransform, &m_headMesh);
+
+	//ObjDraw(pv, m_jadeToadTransform, &m_jadeToadMesh);
 
 	QuadTextureDraw(pv * m_quadTransform);
 	
@@ -191,10 +200,20 @@ bool CompGraphicsApp::LaunchShaders()
 	if (!SpearLoader())
 		return false;
 
-#pragma region BunnyRegion
+	if (!ToadLoader())
+		return false;
 	
+	if (!HeadLoader())
+		return false;
 
-#pragma endregion
+	Light light;
+	light.color = { 1, 1, 1 };
+
+	m_scene = new Scene(&m_camera, glm::vec2(getWindowWidth(), 
+		getWindowHeight()), light, m_ambientLight);
+
+	m_scene->AddInstance(new Instance(m_spearTransform, 
+		&m_spearMesh, &m_normalLitShader));
 
 	return true;
 }
@@ -480,6 +499,42 @@ bool CompGraphicsApp::SpearLoader()
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1
+	};
+
+	return true;
+}
+
+bool CompGraphicsApp::ToadLoader()
+{
+	if (m_jadeToadMesh.load("./JadeToad/source/JadeToad/JadeToad.obj", true, true) == false)
+	{
+		printf("JadeToad Mesh Error!\n");
+		return false;
+	}
+
+	m_jadeToadTransform = {
+		.3f, 0, 0, 0,
+		0, .3f, 0, 0,
+		0, 0, .3f, 0,
+		0, 0, 0, .3f
+	};
+
+	return true;
+}
+
+bool CompGraphicsApp::HeadLoader()
+{
+	if (m_headMesh.load("./robothead/source/ProceduralFinal/ProceduralFinal.obj", true, true) == false)
+	{
+		printf("JadeToad Mesh Error!\n");
+		return false;
+	}
+
+	m_headTransform = {
+		.3f, 0, 0, 0,
+		0, .3f, 0, 0,
+		0, 0, .3f, 0,
+		0, 0, 0, .3f
 	};
 
 	return true;

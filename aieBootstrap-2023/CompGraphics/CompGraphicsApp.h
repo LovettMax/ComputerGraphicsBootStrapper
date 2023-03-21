@@ -9,6 +9,8 @@
 #include "BaseCamera.h"
 #include "StationaryCamera.h"
 #include "FlyCamera.h"
+#include "Scene.h"
+#include "Instance.h"
 
 
 class CompGraphicsApp : public aie::Application {
@@ -49,12 +51,19 @@ protected:
 	void BunnyDraw(glm::mat4 pvm);
 
 	bool SpearLoader();
+
+	bool ToadLoader();
+
+	bool HeadLoader();
+
 	void ObjDraw(glm::mat4 pv, glm::mat4 transform, aie::OBJMesh* objMesh);
 
 	void QuadTextureDraw(glm::mat4 pvm);
 	bool QuadTextureLoader();
 
 	void PhongDraw(glm::mat4 pvm, glm::mat4 transform);
+
+	Scene* m_scene;
 
 	// camera transforms
 	glm::mat4	m_viewMatrix;
@@ -83,6 +92,12 @@ protected:
 	aie::OBJMesh        m_spearMesh;
 	glm::mat4           m_spearTransform;
 
+	aie::OBJMesh        m_jadeToadMesh;
+	glm::mat4           m_jadeToadTransform;
+
+	aie::OBJMesh        m_headMesh;
+	glm::mat4           m_headTransform;
+
 	// Cameras
 	SimpleCamera        m_camera;
 	bool                m_simpleCameraOn = false;
@@ -102,11 +117,6 @@ protected:
 	float m_cameraX;
 	float m_cameraY;
 	float m_cameraZ;
-
-	struct Light {
-		glm::vec3 direction;
-		glm::vec3 color;
-	};
 
 	Light m_light;
 	glm::vec3 m_ambientLight;
