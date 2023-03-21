@@ -14,8 +14,10 @@ CompGraphicsApp::CompGraphicsApp() {
 
 }
 
-CompGraphicsApp::~CompGraphicsApp() {
-
+CompGraphicsApp::~CompGraphicsApp() 
+{
+	if(m_baseCamera != nullptr)
+		delete m_baseCamera;
 }
 
 bool CompGraphicsApp::startup() {
@@ -25,14 +27,20 @@ bool CompGraphicsApp::startup() {
 	// initialise gizmo primitive counts
 	Gizmos::create(10000, 10000, 10000, 10000);
 
+	m_baseCamera = new BaseCamera();
+
+	m_baseCamera->SetPosition(glm::vec3(-10, 2, 0));
 	m_stationaryCamera1.SetPosition(glm::vec3(-10, 2, 0));
 	m_stationaryCamera2.SetPosition(glm::vec3(-5, 5, 0));
-	m_stationaryCamera3.SetPosition(glm::vec3(-10, 1, 0));
+	m_stationaryCamera3.SetPosition(glm::vec3(-10, 0, 0));
+	m_flyCamera.SetPosition(glm::vec3(-10, 2, 0));
+
+	
 
 	// create simple camera transforms
-	m_viewMatrix = m_camera.GetViewMatrix();
+	m_viewMatrix = m_baseCamera->GetViewMatrix();
 		//glm::lookAt(vec3(10), vec3(0), vec3(0, 1, 0));
-	m_projectionMatrix = m_camera.GetProjectionMatrix(getWindowWidth(),
+	m_projectionMatrix = m_baseCamera->GetProjectionMatrix(getWindowWidth(),
 		getWindowHeight());
 		//glm::perspective(glm::pi<float>() * 0.25f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
@@ -95,21 +103,29 @@ void CompGraphicsApp::update(float deltaTime) {
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
 		quit();
 
-	if (m_stationaryCamera1.m_isActive)
-	{
-		m_stationaryCamera1.Update(deltaTime);
-	}
-	else if (m_stationaryCamera2.m_isActive)
-	{
-		m_stationaryCamera2.Update(deltaTime);
-	}
-	else if (m_stationaryCamera3.m_isActive)
-	{
-		m_stationaryCamera3.Update(deltaTime);
-	}
+	m_baseCamera->Update(deltaTime);
+
 
 	ImGUIRefresher();
 	ImGUIShapeSelection();
+
+	if (m_stationaryCamera1.m_isActive)
+	{
+		*m_baseCamera = m_stationaryCamera1;
+	}
+	if (m_stationaryCamera2.m_isActive)
+	{
+		*m_baseCamera = m_stationaryCamera2;
+	}
+	if (m_stationaryCamera3.m_isActive)
+	{
+		*m_baseCamera = m_stationaryCamera3;
+	}
+	if (m_flyCamera.m_isActive)
+	{
+		m_flyCamera.Update(deltaTime);
+		*m_baseCamera = m_flyCamera;
+	}
 }
 
 void CompGraphicsApp::draw() {
@@ -118,9 +134,9 @@ void CompGraphicsApp::draw() {
 	clearScreen();
 
 	// create simple camera transforms
-	m_viewMatrix = m_camera.GetViewMatrix();
+	m_viewMatrix = m_baseCamera->GetViewMatrix();
 	//glm::lookAt(vec3(10), vec3(0), vec3(0, 1, 0));
-	m_projectionMatrix = m_camera.GetProjectionMatrix(getWindowWidth(),
+	m_projectionMatrix = m_baseCamera->GetProjectionMatrix(getWindowWidth(),
 		getWindowHeight());
 
 	// update perspective based on screen size
@@ -132,22 +148,34 @@ void CompGraphicsApp::draw() {
 	// Draw the bunny setup in BunnyLoader()
 	//BunnyDraw(pv * m_bunnyTransform);
 
-	//PhongDraw(pv * m_bunnyTransform, m_bunnyTransform);
+	//PhongDraw(pv * m_spearTransform, m_spearTransform);
+
+	ObjDraw(pv, m_spearTransform, &m_spearMesh);
 
 	QuadTextureDraw(pv * m_quadTransform);
-
+	
 	Gizmos::draw(m_projectionMatrix * m_viewMatrix);
-
+	
 	if (!cubeChecked)
 		return;
 	else
 		CubeDraw(pv * m_cubeTransform);
-
+	
 	CylinderDraw(pv * m_cylinderTransform);
 }
 
 bool CompGraphicsApp::LaunchShaders()
 {
+	m_normalLitShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/normalLit.vert");
+	m_normalLitShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/normalLit.frag");
+
+	if (m_normalLitShader.link() == false)
+	{
+		printf("Normal Lit Phong Shader Error: %s\n", m_normalLitShader.getLastError());
+		return false;
+	}
 	// used for loading in a simple quad
 	//if (!QuadLoader())
 	//	return false;
@@ -158,6 +186,9 @@ bool CompGraphicsApp::LaunchShaders()
 		return false;
 
 	if (!QuadTextureLoader())
+		return false;
+
+	if (!SpearLoader())
 		return false;
 
 #pragma region BunnyRegion
@@ -190,28 +221,13 @@ void CompGraphicsApp::ImGUIRefresher()
 		ImGui::Checkbox("Stationary Camera 1", &m_stationaryCamera1.m_isActive);
 		ImGui::Checkbox("Stationary Camera 2", &m_stationaryCamera2.m_isActive);
 		ImGui::Checkbox("Stationary Camera 3", &m_stationaryCamera3.m_isActive);
-
-	}
-
-	
-	if (m_stationaryCamera1.m_isActive)
-	{
-		SetStationaryCameraMatrix(m_stationaryCamera1);
-	}
-	else if (m_stationaryCamera2.m_isActive)
-	{
-		SetStationaryCameraMatrix(m_stationaryCamera2);
-	}
-	else if (m_stationaryCamera3.m_isActive)
-	{
-		SetStationaryCameraMatrix(m_stationaryCamera3);
+		ImGui::Checkbox("Fly Camera 1", &m_flyCamera.m_isActive);
 	}
 
 	glm::vec3 cameraPos = glm::vec3(m_cameraX, m_cameraY, m_cameraZ);
 	if (m_isCameraStatic)
 		m_camera.SetPosition(cameraPos);
 	
-
 	ImGui::End();
 }
 
@@ -225,12 +241,11 @@ void CompGraphicsApp::ImGUIShapeSelection()
 }
 
 
-
-void CompGraphicsApp::SetStationaryCameraMatrix(StationaryCamera cam)
+void CompGraphicsApp::SetStationaryCameraMatrix(StationaryCamera* cam)
 {
-	m_viewMatrix = cam.GetViewMatrix();
-	m_projectionMatrix = cam.GetProjectionMatrix(getWindowWidth(),
-		getWindowHeight());
+	//m_viewMatrix = cam.GetViewMatrix();
+	//m_projectionMatrix = cam.GetProjectionMatrix(getWindowWidth(),
+	//	getWindowHeight());
 }
 
 bool CompGraphicsApp::QuadLoader()
@@ -452,6 +467,47 @@ void CompGraphicsApp::BunnyDraw(glm::mat4 pvm)
 	m_bunnyMesh.draw();
 }
 
+bool CompGraphicsApp::SpearLoader()
+{
+	if (m_spearMesh.load("./soulspear/soulspear.obj", true, true) == false)
+	{
+		printf("Soulspear Mesh Error!\n");
+		return false;
+	}
+
+	m_spearTransform = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+
+	return true;
+}
+
+void CompGraphicsApp::ObjDraw(glm::mat4 pv, glm::mat4 transform, aie::OBJMesh* objMesh)
+{
+	// Bind the shader
+	m_normalLitShader.bind();
+
+	m_normalLitShader.bindUniform("CameraPosition",
+		glm::vec3(glm::inverse(m_viewMatrix)[3]));
+
+	// Bind the directional light we defined
+	m_normalLitShader.bindUniform("LightDirection", m_light.direction);
+	m_normalLitShader.bindUniform("LightColor", m_light.color);
+	m_normalLitShader.bindUniform("AmbientColor", m_ambientLight);
+
+	m_normalLitShader.bindUniform("diffuseTexture", 0);
+
+	// Bind the transform
+	m_normalLitShader.bindUniform("ProjectionViewModel", pv * transform);
+
+	m_normalLitShader.bindUniform("ModelMatrix", transform);
+
+	objMesh->draw();
+}
+
 void CompGraphicsApp::QuadTextureDraw(glm::mat4 pvm)
 {
 	// Bind the shader
@@ -521,7 +577,7 @@ void CompGraphicsApp::PhongDraw(glm::mat4 pvm, glm::mat4 transform)
 	// bind the transform using the one provided
 	m_phongShader.bindUniform("ModelMatrix", transform);
 
-	m_bunnyMesh.draw();
+	m_spearMesh.draw();
 }
 
 void CompGraphicsApp::Planetary()

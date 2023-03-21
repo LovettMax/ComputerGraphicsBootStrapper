@@ -11,4 +11,6 @@ StationaryCamera::~StationaryCamera()
 
 void StationaryCamera::SetRotation(glm::vec3 rot)
 {
+	//m_worldTransform
+	
 }

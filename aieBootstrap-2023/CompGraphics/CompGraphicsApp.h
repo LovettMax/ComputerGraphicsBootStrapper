@@ -8,6 +8,7 @@
 #include "SimpleCamera.h"
 #include "BaseCamera.h"
 #include "StationaryCamera.h"
+#include "FlyCamera.h"
 
 
 class CompGraphicsApp : public aie::Application {
@@ -33,7 +34,7 @@ protected:
 
 	bool cubeChecked = false;
 
-	void SetStationaryCameraMatrix(StationaryCamera cam);
+	void SetStationaryCameraMatrix(StationaryCamera* cam);
 
 	bool QuadLoader();
 	void QuadDraw(glm::mat4 pvm);
@@ -46,6 +47,9 @@ protected:
 
 	bool BunnyLoader();
 	void BunnyDraw(glm::mat4 pvm);
+
+	bool SpearLoader();
+	void ObjDraw(glm::mat4 pv, glm::mat4 transform, aie::OBJMesh* objMesh);
 
 	void QuadTextureDraw(glm::mat4 pvm);
 	bool QuadTextureLoader();
@@ -62,6 +66,7 @@ protected:
 	aie::ShaderProgram  m_colorShader;
 	aie::ShaderProgram  m_phongShader;
 	aie::ShaderProgram  m_texturedShader;
+	aie::ShaderProgram  m_normalLitShader;
 
 	Mesh                m_quadMesh;
 	glm::mat4           m_quadTransform;
@@ -75,11 +80,22 @@ protected:
 	aie::OBJMesh        m_bunnyMesh;
 	glm::mat4           m_bunnyTransform;
 
+	aie::OBJMesh        m_spearMesh;
+	glm::mat4           m_spearTransform;
+
 	// Cameras
 	SimpleCamera        m_camera;
+	bool                m_simpleCameraOn = false;
+
+	BaseCamera*         m_baseCamera;
+
 	StationaryCamera    m_stationaryCamera1;
+
 	StationaryCamera    m_stationaryCamera2;
+
 	StationaryCamera    m_stationaryCamera3;
+
+	FlyCamera           m_flyCamera;
 
 	bool m_isCameraStatic = false;
 

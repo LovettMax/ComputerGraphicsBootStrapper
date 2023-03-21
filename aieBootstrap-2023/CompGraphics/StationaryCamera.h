@@ -9,8 +9,6 @@ public:
 
 	void SetRotation(glm::vec3 rot);
 
-	bool m_isActive = false;
-
 private:
 
 

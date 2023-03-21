@@ -40,6 +40,7 @@ public:
 		void SetProjectionMatrix(float fieldOfView, float width,
 		float height, float near, float far);
 
+	bool m_isActive = false;
 
 protected:
 	
