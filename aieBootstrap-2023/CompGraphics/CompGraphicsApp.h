@@ -57,6 +57,8 @@ protected:
 	bool HeadLoader();
 
 	void ObjDraw(glm::mat4 pv, glm::mat4 transform, aie::OBJMesh* objMesh);
+	bool ObjLoader(aie::OBJMesh& objMesh, glm::mat4& transform,
+		float scale, const char* filepath, bool flipTexture);
 
 	void QuadTextureDraw(glm::mat4 pvm);
 	bool QuadTextureLoader();

@@ -45,9 +45,15 @@ bool CompGraphicsApp::startup() {
 		//glm::perspective(glm::pi<float>() * 0.25f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
 	Light light;
-
 	light.color = { 1, 1, 1 };
+	light.direction = { 1, -1, 1 };
 	m_ambientLight = { .5f, .5f, .5f };
+
+	m_scene = new Scene(m_baseCamera, glm::vec2(getWindowWidth(),
+		getWindowHeight()), light, m_ambientLight);
+
+	m_scene->AddPointLights(glm::vec3(5, 3, 0), glm::vec3(1, 0, 0), 50);
+	m_scene->AddPointLights(glm::vec3(-55, 3, 0), glm::vec3(0, 0, 1), 50);
 
 	m_cameraX = -10;
 	m_cameraY = 2;
@@ -157,7 +163,7 @@ void CompGraphicsApp::draw() {
 
 	//ObjDraw(pv, m_spearTransform, &m_spearMesh);
 
-	//ObjDraw(pv, m_headTransform, &m_headMesh);
+	ObjDraw(pv, m_headTransform, &m_headMesh);
 
 	//ObjDraw(pv, m_jadeToadTransform, &m_jadeToadMesh);
 
@@ -206,13 +212,17 @@ bool CompGraphicsApp::LaunchShaders()
 	if (!HeadLoader())
 		return false;
 
+	if (!ObjLoader(m_bunnyMesh, m_bunnyTransform, 0, "./stanford/Bunny.obj" ,false))
+		return false;
+
 	Light light;
 	light.color = { 1, 1, 1 };
 
-	m_scene = new Scene(&m_camera, glm::vec2(getWindowWidth(), 
-		getWindowHeight()), light, m_ambientLight);
+	
 
-	m_scene->AddInstance(new Instance(m_spearTransform, 
+	for(int i = 0; i < 10; i++)
+	m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),
+		glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
 		&m_spearMesh, &m_normalLitShader));
 
 	return true;
@@ -561,6 +571,25 @@ void CompGraphicsApp::ObjDraw(glm::mat4 pv, glm::mat4 transform, aie::OBJMesh* o
 	m_normalLitShader.bindUniform("ModelMatrix", transform);
 
 	objMesh->draw();
+}
+
+bool CompGraphicsApp::ObjLoader(aie::OBJMesh& objMesh, glm::mat4& transform, 
+	float scale, const char* filepath, bool flipTexture)
+{
+	if (objMesh.load(filepath) == false)
+	{
+		printf("Mesh Error!\n");
+		return false;
+	}
+
+	transform = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+
+	return true;
 }
 
 void CompGraphicsApp::QuadTextureDraw(glm::mat4 pvm)
