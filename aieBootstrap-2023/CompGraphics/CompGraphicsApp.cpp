@@ -170,6 +170,11 @@ void CompGraphicsApp::draw() {
 
 	m_scene->Draw();
 
+	if (!gridChecked)
+		return;
+	else
+		Gizmos::draw(m_projectionMatrix * m_viewMatrix);
+
 	// Unbind the target to return to the backbuffer
 	m_renderTarget.unbind();
 
@@ -180,25 +185,25 @@ void CompGraphicsApp::draw() {
 	// 
 	// Draw the bunny setup in BunnyLoader()
 	//BunnyDraw(pv * m_bunnyTransform);
-
 	//PhongDraw(pv * m_spearTransform, m_spearTransform);
-
 	//ObjDraw(pv, m_spearTransform, &m_spearMesh);
-
 	//DrawGizmos();
 
 	DrawGizmos(pv, m_cubeTransform, m_cubeMesh, m_blueLight->direction);
 	DrawGizmos(pv, m_cubeTransform, m_cubeMesh, m_redLight->direction);
 
-	if (!gridChecked)
-		return;
-	else
-		Gizmos::draw(m_projectionMatrix * m_viewMatrix);
+	// Bind the post processing shader and the texture
+	m_postProcessShader.bind();
+	m_postProcessShader.bindUniform("colorTarget", 0);
+	m_postProcessShader.bindUniform("postProcessTarget", m_postProcessingEffect);
+	m_renderTarget.getTarget(0).bind(0);
 
-	if (!textureChecked)
-		return;
-	else
-		QuadTextureDraw(pv * m_quadTransform);
+	m_fullScreenQuad.Draw();
+
+	//if (!textureChecked)
+	//	return;
+	//else
+	//	QuadTextureDraw(pv * m_quadTransform);
 
 	if (!headChecked)
 		return;
@@ -211,11 +216,12 @@ void CompGraphicsApp::draw() {
 		CubeDraw(pv * m_cubeTransform);
 	
 	CylinderDraw(pv * m_cylinderTransform);
+
+	
 }
 
 bool CompGraphicsApp::LaunchShaders()
 {
-
 	if (m_renderTarget.initialise(1, getWindowWidth(),
 		getWindowHeight()) == false)
 	{
@@ -225,6 +231,7 @@ bool CompGraphicsApp::LaunchShaders()
 
 #pragma region LoadingShaders
 
+	// Normal Lit Shaders loading
 	m_normalLitShader.loadShader(aie::eShaderStage::VERTEX,
 		"./shaders/normalLit.vert");
 	m_normalLitShader.loadShader(aie::eShaderStage::FRAGMENT,
@@ -235,17 +242,29 @@ bool CompGraphicsApp::LaunchShaders()
 		printf("Normal Lit Phong Shader Error: %s\n", m_normalLitShader.getLastError());
 		return false;
 	}
-	// used for loading in a simple quad
-	//if (!QuadLoader())
-	//	return false;
-	// used for loading bunny quad
-	//if (!BunnyLoader())
-	//	return false;
+
+	// Loading Post Processing
+	m_postProcessShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/post.vert");
+	m_postProcessShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/post.frag");
+
+	if (m_postProcessShader.link() == false)
+	{
+		printf("Normal Lit Phong Shader Error: %s\n", m_postProcessShader.getLastError());
+		return false;
+	}
+	
+	// Loading Shapes
+
 	if (!CubeLoader())
 		return false;
 
 	if (!QuadTextureLoader())
 		return false;
+
+	// Create a full screen quad
+	m_fullScreenQuad.InitialiseFullscreenQuad();
 
 	if (!SpearLoader())
 		return false;
@@ -261,13 +280,6 @@ bool CompGraphicsApp::LaunchShaders()
 
 	Light light;
 	light.color = { 1, 1, 1 };
-
-
-
-	//for(int i = 0; i < 20; i++)
-	//m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),
-	//	glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
-	//	&m_spearMesh, &m_normalLitShader));
 
 	for (int i = 0; i < 20; i++)
 		m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),

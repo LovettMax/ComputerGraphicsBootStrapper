@@ -75,6 +75,9 @@ protected:
 
 	void PhongDraw(glm::mat4 pvm, glm::mat4 transform);
 
+	int m_postProcessingEffect = 0;
+
+
 	Scene* m_scene;
 
 	// camera transforms
@@ -88,8 +91,11 @@ protected:
 	aie::ShaderProgram  m_phongShader;
 	aie::ShaderProgram  m_texturedShader;
 	aie::ShaderProgram  m_normalLitShader;
+	aie::ShaderProgram  m_postProcessShader;
 
 	aie::RenderTarget m_renderTarget;
+
+	Mesh                m_fullScreenQuad;
 
 	Mesh                m_quadMesh;
 	glm::mat4           m_quadTransform;
@@ -140,5 +146,6 @@ protected:
 	Light* m_blueLight;
 	Light* m_redLight;
 	glm::vec3 m_ambientLight;
+
 
 };
