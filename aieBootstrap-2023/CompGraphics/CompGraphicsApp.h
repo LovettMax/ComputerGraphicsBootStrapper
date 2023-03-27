@@ -75,7 +75,7 @@ protected:
 
 	void PhongDraw(glm::mat4 pvm, glm::mat4 transform);
 
-	int m_postProcessingEffect = 0;
+	int m_postProcessingEffect = 1;
 
 
 	Scene* m_scene;
