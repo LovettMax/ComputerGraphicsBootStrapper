@@ -152,6 +152,9 @@ void CompGraphicsApp::update(float deltaTime) {
 }
 
 void CompGraphicsApp::draw() {
+	// Bind the render target as the first
+	// part of our draw
+	m_renderTarget.bind();
 
 	// wipe the screen to the background colour
 	clearScreen();
@@ -166,6 +169,11 @@ void CompGraphicsApp::draw() {
 	auto pv = m_projectionMatrix * m_viewMatrix;
 
 	m_scene->Draw();
+
+	// Unbind the target to return to the backbuffer
+	m_renderTarget.unbind();
+
+	clearScreen();
 
 	// Draw the quad setup in QuadLoader()
 	//QuadDraw(pv * m_quadTransform);
@@ -207,6 +215,16 @@ void CompGraphicsApp::draw() {
 
 bool CompGraphicsApp::LaunchShaders()
 {
+
+	if (m_renderTarget.initialise(1, getWindowWidth(),
+		getWindowHeight()) == false)
+	{
+		printf("Render Target Error!\n");
+		return false;
+	}
+
+#pragma region LoadingShaders
+
 	m_normalLitShader.loadShader(aie::eShaderStage::VERTEX,
 		"./shaders/normalLit.vert");
 	m_normalLitShader.loadShader(aie::eShaderStage::FRAGMENT,
@@ -234,17 +252,17 @@ bool CompGraphicsApp::LaunchShaders()
 
 	if (!ToadLoader())
 		return false;
-	
+
 	if (!HeadLoader())
 		return false;
 
-	if (!ObjLoader(m_bunnyMesh, m_bunnyTransform, 0, "./stanford/Bunny.obj" ,false))
+	if (!ObjLoader(m_bunnyMesh, m_bunnyTransform, 0, "./stanford/Bunny.obj", false))
 		return false;
 
 	Light light;
 	light.color = { 1, 1, 1 };
 
-	
+
 
 	//for(int i = 0; i < 20; i++)
 	//m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),
@@ -260,6 +278,11 @@ bool CompGraphicsApp::LaunchShaders()
 		m_scene->AddInstance(new Instance(glm::vec3(-(i * 2), 0, 0),
 			glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
 			&m_spearMesh, &m_normalLitShader));
+
+#pragma endregion
+
+
+	
 
 	return true;
 }
@@ -676,7 +699,9 @@ void CompGraphicsApp::QuadTextureDraw(glm::mat4 pvm)
 	m_texturedShader.bindUniform("diffuseTexture", 0);
 
 	// Bind the texture to a specific location
-	m_gridTexture.bind(0);
+	//m_gridTexture.bind(0);
+
+	m_renderTarget.getTarget(0).bind(0);
 
 	// Draw the quad using Mesh's draw
 	m_quadMesh.Draw();
