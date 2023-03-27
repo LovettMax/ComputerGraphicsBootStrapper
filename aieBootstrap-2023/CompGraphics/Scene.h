@@ -39,6 +39,11 @@ public:
 		m_pointLights.push_back(Light(direction, color, intensity));
 	}
 
+	void AddPointLights(Light m_light, float intensity)
+	{
+		m_pointLights.push_back(Light(m_light.direction, m_light.color, intensity));
+	}
+
 	BaseCamera* GetCamera() { return m_camera; }
 	glm::vec2 GetWindowSize();
 	glm::vec3 GetAmbientLightColor() { return m_ambientLightColor; }

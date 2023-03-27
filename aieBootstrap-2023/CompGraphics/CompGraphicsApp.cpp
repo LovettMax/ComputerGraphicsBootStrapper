@@ -52,8 +52,20 @@ bool CompGraphicsApp::startup() {
 	m_scene = new Scene(m_baseCamera, glm::vec2(getWindowWidth(),
 		getWindowHeight()), light, m_ambientLight);
 
-	m_scene->AddPointLights(glm::vec3(5, 3, 0), glm::vec3(1, 0, 0), 50);
-	m_scene->AddPointLights(glm::vec3(-55, 3, 0), glm::vec3(0, 0, 1), 50);
+	// Blue Light
+	m_blueLight = new Light();
+	m_blueLight->direction = { -6, 5, 0 };
+	m_blueLight->color = { 0, 0, 1 };
+
+	// Red Light
+	m_redLight = new Light();
+	m_redLight->direction = { 6, 5, 0 };
+	m_redLight->color = { 1, 0, 0 };
+
+	//m_scene->AddPointLights(glm::vec3(5, 3, 0), glm::vec3(1, 0, 0), 50);
+	//m_scene->AddPointLights(glm::vec3(-5, 3, 0), glm::vec3(0, 0, 1), 50);
+	m_scene->AddPointLights(*m_blueLight, 75);
+	m_scene->AddPointLights(*m_redLight, 75);
 
 	m_cameraX = -10;
 	m_cameraY = 2;
@@ -66,6 +78,8 @@ void CompGraphicsApp::shutdown() {
 
 	Gizmos::destroy();
 	delete m_scene;
+	delete m_blueLight;
+	delete m_redLight;
 }
 
 void CompGraphicsApp::update(float deltaTime) {
@@ -93,8 +107,8 @@ void CompGraphicsApp::update(float deltaTime) {
 	//Planetary();
 	// -----------------------
 
-	m_cubeTransform = 
-		glm::rotate(m_cubeTransform, glm::radians(0.5f), glm::vec3(0, 1, 0));
+	//m_cubeTransform = 
+	//	glm::rotate(m_cubeTransform, glm::radians(0.5f), glm::vec3(0, 1, 0));
 
 	// quit if we press escape
 	aie::Input* input = aie::Input::getInstance();
@@ -163,14 +177,26 @@ void CompGraphicsApp::draw() {
 
 	//ObjDraw(pv, m_spearTransform, &m_spearMesh);
 
-	ObjDraw(pv, m_headTransform, &m_headMesh);
+	//DrawGizmos();
 
-	//ObjDraw(pv, m_jadeToadTransform, &m_jadeToadMesh);
+	DrawGizmos(pv, m_cubeTransform, m_cubeMesh, m_blueLight->direction);
+	DrawGizmos(pv, m_cubeTransform, m_cubeMesh, m_redLight->direction);
 
-	QuadTextureDraw(pv * m_quadTransform);
-	
-	Gizmos::draw(m_projectionMatrix * m_viewMatrix);
-	
+	if (!gridChecked)
+		return;
+	else
+		Gizmos::draw(m_projectionMatrix * m_viewMatrix);
+
+	if (!textureChecked)
+		return;
+	else
+		QuadTextureDraw(pv * m_quadTransform);
+
+	if (!headChecked)
+		return;
+	else
+		ObjDraw(pv, m_headTransform, &m_headMesh);
+
 	if (!cubeChecked)
 		return;
 	else
@@ -220,10 +246,20 @@ bool CompGraphicsApp::LaunchShaders()
 
 	
 
-	for(int i = 0; i < 10; i++)
-	m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),
-		glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
-		&m_spearMesh, &m_normalLitShader));
+	//for(int i = 0; i < 20; i++)
+	//m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),
+	//	glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
+	//	&m_spearMesh, &m_normalLitShader));
+
+	for (int i = 0; i < 20; i++)
+		m_scene->AddInstance(new Instance(glm::vec3(i * 2, 0, 0),
+			glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
+			&m_spearMesh, &m_normalLitShader));
+
+	for (int i = 0; i < 20; i++)
+		m_scene->AddInstance(new Instance(glm::vec3(-(i * 2), 0, 0),
+			glm::vec3(0, i * 30, 0), glm::vec3(1, 1, 1),
+			&m_spearMesh, &m_normalLitShader));
 
 	return true;
 }
@@ -252,6 +288,7 @@ void CompGraphicsApp::ImGUIRefresher()
 		ImGui::Checkbox("Stationary Camera 3", &m_stationaryCamera3.m_isActive);
 		ImGui::Checkbox("Fly Camera 1", &m_flyCamera.m_isActive);
 	}
+	
 
 	glm::vec3 cameraPos = glm::vec3(m_cameraX, m_cameraY, m_cameraZ);
 	if (m_isCameraStatic)
@@ -263,7 +300,13 @@ void CompGraphicsApp::ImGUIRefresher()
 void CompGraphicsApp::ImGUIShapeSelection()
 {
 	ImGui::Begin("Shape Settings");
-	ImGui::Checkbox("Cube", &cubeChecked);
+	if (ImGui::CollapsingHeader("Object Selection"))
+	{
+		ImGui::Checkbox("Grid", &gridChecked);
+		ImGui::Checkbox("Texture", &textureChecked);
+		ImGui::Checkbox("Cube", &cubeChecked);
+		ImGui::Checkbox("Head", &headChecked);
+	}
 	ImGui::DragFloat3("Cube Color",
 		&m_light.color[0], 0.1, 0, 1);
 	ImGui::End();
@@ -369,9 +412,9 @@ bool CompGraphicsApp::CubeLoader()
 
 	// This is a 10 'unit' wide quad
 	m_cubeTransform = {
-		5, 0, 0, 0,
-		0, 5, 0, 0,
-		0, 0, 5, 0,
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
 		0, 0, 0,  1
 	};
 	return true;
@@ -388,6 +431,34 @@ void CompGraphicsApp::CubeDraw(glm::mat4 pvm)
 
 	// Draw the quad using Mesh's draw
 	m_cubeMesh.Draw();
+}
+
+void CompGraphicsApp::DrawGizmos(glm::mat4 projectionView, glm::mat4 transform, Mesh& gizmoMesh, glm::vec3 position)
+{
+	glm::mat4 mat
+	{
+		         1,          0,          0,          0,
+		         0,          1,          0,          0,
+		         0,          0,          1,          0,
+		position.x, position.y, position.z,          1
+	};
+
+
+	SimpleDraw(projectionView * (transform * mat), gizmoMesh);
+}
+
+
+void CompGraphicsApp::SimpleDraw(glm::mat4 pvm, Mesh& mesh)
+{
+	// Bind the shader
+	m_simpleShader.bind();
+
+	// Bind the transform
+
+	m_simpleShader.bindUniform("ProjectionViewModel", pvm);
+
+	// Draw the quad using Mesh's draw
+	mesh.Draw();
 }
 
 bool CompGraphicsApp::Cylinder()

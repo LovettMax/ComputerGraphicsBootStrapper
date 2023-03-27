@@ -62,7 +62,7 @@ void main()
     vec3 texSpecular = texture(specularTexture, vTexCoord).rgb;
     vec3 texNormal = texture(normalTexture, vTexCoord).rgb;
 
-    N = TBN * (texNormal * 2 - 1);
+    N = normalize(TBN * (texNormal * 2 - 1));
 
     //  Calculate the negative light direction (Lambert Term)
     float lambertTerm = max(0, min(1, dot(N, -L)));
@@ -93,6 +93,7 @@ void main()
     vec3 ambient = AmbientColor * Ka * texDiffuse;
     vec3 diffuse = diffuseTotal * Kd * texDiffuse;
     vec3 specular =  specularTotal * Ks * texSpecular;
+
 
     FragColor = vec4(ambient + diffuse + specular, 1);//vec4(ambient + diffuse + specular, 1);
 }

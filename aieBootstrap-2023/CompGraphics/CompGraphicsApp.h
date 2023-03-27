@@ -34,7 +34,11 @@ protected:
 	void ImGUIRefresher();
 	void ImGUIShapeSelection();
 
+	// Shape Checks
+	bool gridChecked = true;
+	bool textureChecked = false;
 	bool cubeChecked = false;
+	bool headChecked = false;
 
 	void SetStationaryCameraMatrix(StationaryCamera* cam);
 
@@ -43,6 +47,11 @@ protected:
 
 	bool CubeLoader();
 	void CubeDraw(glm::mat4 pvm);
+	
+	void DrawGizmos(glm::mat4 projectionView, glm::mat4 transform,
+		Mesh& gizmoMesh, glm::vec3 position);
+
+	void SimpleDraw(glm::mat4 pvm, Mesh& mesh);
 	
 	bool Cylinder();
 	void CylinderDraw(glm::mat4 pvm);
@@ -85,6 +94,9 @@ protected:
 	Mesh                m_cubeMesh;
 	glm::mat4           m_cubeTransform;
 
+	Mesh                m_gizmosMesh;
+	glm::mat4           m_gizmosTransform;
+
 	Mesh                m_cylinderMesh;
 	glm::mat4           m_cylinderTransform;
 
@@ -121,6 +133,9 @@ protected:
 	float m_cameraZ;
 
 	Light m_light;
+
+	Light* m_blueLight;
+	Light* m_redLight;
 	glm::vec3 m_ambientLight;
 
 };
