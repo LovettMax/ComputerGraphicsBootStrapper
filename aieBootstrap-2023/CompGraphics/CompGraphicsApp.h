@@ -12,6 +12,8 @@
 #include "Scene.h"
 #include "Instance.h"
 #include "RenderTarget.h"
+#include "String"
+#include "ParticleEmitter.h"
 
 
 class CompGraphicsApp : public aie::Application {
@@ -75,8 +77,11 @@ protected:
 
 	void PhongDraw(glm::mat4 pvm, glm::mat4 transform);
 
-	int m_postProcessingEffect = 1;
+	int m_postProcessingEffect = 0;
 
+	std::string defaultString = "blur";
+
+	
 
 	Scene* m_scene;
 
@@ -92,6 +97,7 @@ protected:
 	aie::ShaderProgram  m_texturedShader;
 	aie::ShaderProgram  m_normalLitShader;
 	aie::ShaderProgram  m_postProcessShader;
+	aie::ShaderProgram  m_particleShader;
 
 	aie::RenderTarget m_renderTarget;
 
@@ -126,6 +132,7 @@ protected:
 	bool                m_simpleCameraOn = false;
 
 	BaseCamera*         m_baseCamera;
+	BaseCamera*         m_tempCamera;
 
 	StationaryCamera    m_stationaryCamera1;
 
@@ -147,5 +154,6 @@ protected:
 	Light* m_redLight;
 	glm::vec3 m_ambientLight;
 
-
+	ParticleEmitter*     m_emmiter;
+	glm::mat4           m_particleEmitTransform;
 };

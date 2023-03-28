@@ -47,6 +47,11 @@ bool CompGraphicsApp::startup() {
 	Light light;
 	light.color = { 1, 1, 1 };
 	light.direction = { 1, -1, 1 };
+
+	m_emmiter = new ParticleEmitter();
+	m_emmiter->Intialise(1000, 500, .1f, 1.f, 
+		1, 5, 1, .1f, glm::vec4(0, 0, 1, 1), glm::vec4(0, 1, 0, 1));
+
 	m_ambientLight = { .5f, .5f, .5f };
 
 	m_scene = new Scene(m_baseCamera, glm::vec2(getWindowWidth(),
@@ -126,7 +131,7 @@ void CompGraphicsApp::update(float deltaTime) {
 	if (input->isKeyDown(aie::INPUT_KEY_ESCAPE))
 		quit();
 
-	m_baseCamera->Update(deltaTime);
+
 
 
 	ImGUIRefresher();
@@ -149,6 +154,16 @@ void CompGraphicsApp::update(float deltaTime) {
 		m_flyCamera.Update(deltaTime);
 		*m_baseCamera = m_flyCamera;
 	}
+
+
+	
+	m_emmiter->Update(deltaTime, m_scene->GetCamera()->GetWorldTransform(
+		m_baseCamera->GetPosition(), glm::vec3(0), glm::vec3(1)));
+	
+	
+
+	m_baseCamera->Update(deltaTime);
+	
 }
 
 void CompGraphicsApp::draw() {
@@ -169,6 +184,11 @@ void CompGraphicsApp::draw() {
 	auto pv = m_projectionMatrix * m_viewMatrix;
 
 	m_scene->Draw();
+
+	// Particle binding
+	m_particleShader.bind();
+	m_particleShader.bindUniform("ProjectionViewModel", pv * m_particleEmitTransform);
+	m_emmiter->Draw();
 
 	if (!gridChecked)
 		return;
@@ -196,6 +216,9 @@ void CompGraphicsApp::draw() {
 	m_postProcessShader.bind();
 	m_postProcessShader.bindUniform("colorTarget", 0);
 	m_postProcessShader.bindUniform("postProcessTarget", m_postProcessingEffect);
+	m_postProcessShader.bindUniform("windowWidth", (int)getWindowWidth());
+	m_postProcessShader.bindUniform("windowHeight", (int)getWindowHeight());
+	m_postProcessShader.bindUniform("iTime", getTime());
 	m_renderTarget.getTarget(0).bind(0);
 
 	m_fullScreenQuad.Draw();
@@ -231,6 +254,13 @@ bool CompGraphicsApp::LaunchShaders()
 
 #pragma region LoadingShaders
 
+	m_particleEmitTransform = {
+	    1, 0, 0, 0,
+	    0, 1, 0, 0,
+	    0, 0, 1, 0,
+	    0, 0, 0, 1
+	};
+
 	// Normal Lit Shaders loading
 	m_normalLitShader.loadShader(aie::eShaderStage::VERTEX,
 		"./shaders/normalLit.vert");
@@ -254,7 +284,21 @@ bool CompGraphicsApp::LaunchShaders()
 		printf("Normal Lit Phong Shader Error: %s\n", m_postProcessShader.getLastError());
 		return false;
 	}
+
+	// Loading Particle Shader
+	m_particleShader.loadShader(aie::eShaderStage::VERTEX,
+		"./shaders/particle.vert");
+	m_particleShader.loadShader(aie::eShaderStage::FRAGMENT,
+		"./shaders/particle.frag");
+
+	if (m_particleShader.link() == false)
+	{
+		printf("Normal Lit Phong Shader Error: %s\n", m_particleShader.getLastError());
+		return false;
+	}
 	
+#pragma region Loading Shapes/Shaders
+
 	// Loading Shapes
 
 	if (!CubeLoader())
@@ -277,6 +321,10 @@ bool CompGraphicsApp::LaunchShaders()
 
 	if (!ObjLoader(m_bunnyMesh, m_bunnyTransform, 0, "./stanford/Bunny.obj", false))
 		return false;
+
+#pragma endregion
+
+	
 
 	Light light;
 	light.color = { 1, 1, 1 };
@@ -307,6 +355,69 @@ void CompGraphicsApp::ImGUIRefresher()
 		&m_light.color[0], 0.1, 0, 1);
 	ImGui::DragFloat3("Global Light Direction",
 		&m_light.direction[0], 0.1, -1, 1);
+
+	switch(m_postProcessingEffect)
+	{
+	    default:
+	    {
+	    	defaultString = "default";
+	    }
+	    case 0: // Blur
+	    {
+			defaultString = "Blur";
+			break;
+	    }
+	    case 1: // Distort
+	    {
+			defaultString = "Distort";
+	    	break;
+	    }
+	    case 2: // Edge Detection
+	    {
+			defaultString = "Edge Distoring";
+	    	break;
+	    }
+	    case 3: // Sepia
+	    {
+			defaultString = "Sepia";
+	    	break;
+	    }
+	    case 4: // Scanlines
+	    {
+			defaultString = "ScanLines";
+	    	break;
+	    }
+	    case 5: // Grey Scale
+	    {
+			defaultString = "Grey Scale";
+	    	break;
+	    }
+	    case 6: // Invert
+	    {
+			defaultString = "Invert";
+	    	break;
+	    }
+	    case 7: // Pixelizer
+	    {
+	    	break;
+	    }
+	    case 8: // Posterization
+	    {
+	    	break;
+	    }
+	    case 9: // Distance Fog
+	    {
+	    	break;
+	    }
+	    case 10: // Depth of Field
+	    {
+	    	break;
+	    }
+	};
+
+
+	ImGui::CollapsingHeader("PostProcessingEffect");
+	ImGui::InputInt(defaultString.c_str(), &m_postProcessingEffect, 1, -1, 12);
 
 	// Camera Settings
 	if (ImGui::CollapsingHeader("Camera Settings"))
