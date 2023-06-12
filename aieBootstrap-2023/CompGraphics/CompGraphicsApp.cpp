@@ -140,19 +140,31 @@ void CompGraphicsApp::update(float deltaTime) {
 	if (m_stationaryCamera1.m_isActive)
 	{
 		*m_baseCamera = m_stationaryCamera1;
+		m_stationaryCamera2.m_isActive = false;
+		m_stationaryCamera3.m_isActive = false;
+		m_flyCamera.m_isActive		   = false;
 	}
 	if (m_stationaryCamera2.m_isActive)
 	{
 		*m_baseCamera = m_stationaryCamera2;
+		m_stationaryCamera1.m_isActive = false;
+		m_stationaryCamera3.m_isActive = false;
+		m_flyCamera.m_isActive         = false;
 	}
 	if (m_stationaryCamera3.m_isActive)
 	{
 		*m_baseCamera = m_stationaryCamera3;
+		m_stationaryCamera1.m_isActive = false;
+		m_stationaryCamera2.m_isActive = false;
+		m_flyCamera.m_isActive         = false;
 	}
 	if (m_flyCamera.m_isActive)
 	{
 		m_flyCamera.Update(deltaTime);
 		*m_baseCamera = m_flyCamera;
+		m_stationaryCamera1.m_isActive = false;
+		m_stationaryCamera2.m_isActive = false;
+		m_stationaryCamera3.m_isActive = false;
 	}
 
 

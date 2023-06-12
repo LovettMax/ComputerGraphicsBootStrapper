@@ -143,6 +143,10 @@ protected:
 	FlyCamera           m_flyCamera;
 
 	bool m_isCameraStatic = false;
+	bool m_canChange1 = false;
+	bool m_canChange2 = false;
+	bool m_canChange3 = false;
+	bool m_canChange4 = false;
 
 	float m_cameraX;
 	float m_cameraY;
